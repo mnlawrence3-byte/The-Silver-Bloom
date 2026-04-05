@@ -1,0 +1,153 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - The unique identifier for the user.
+    //   - displayName: string (required) - The user's display name.
+    //   - photoURL: string (optional) - The user's avatar URL.
+    //   - avatarIcon: string (optional) - The user's selected cosmic avatar icon name.
+    //   - sunSign: string (optional) - The user's sun sign.
+    //   - moonSign: string (optional) - The user's moon sign.
+    //   - risingSign: string (optional) - The user's rising sign.
+    //   - soulUrge: number (optional) - The user's soul urge number.
+    //   - lifePath: number (optional) - The user's life path number.
+    //   - starseed: string (optional) - The user's starseed origin.
+    //   - updatedAt: timestamp (optional) - The last time the profile was updated.
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "mnlawrence3@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'displayName']) &&
+             data.uid is string && data.uid.size() > 0 &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 100 &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() < 1000)) &&
+             (!('avatarIcon' in data) || (data.avatarIcon is string && data.avatarIcon.size() < 50)) &&
+             (!('sunSign' in data) || (data.sunSign is string && data.sunSign.size() < 20)) &&
+             (!('moonSign' in data) || (data.moonSign is string && data.moonSign.size() < 20)) &&
+             (!('risingSign' in data) || (data.risingSign is string && data.risingSign.size() < 20)) &&
+             (!('soulUrge' in data) || (data.soulUrge is number)) &&
+             (!('lifePath' in data) || (data.lifePath is number)) &&
+             (!('starseed' in data) || (data.starseed is string && data.starseed.size() < 50)) &&
+             (!('cosmicMantra' in data) || (data.cosmicMantra is string && data.cosmicMantra.size() < 500)) &&
+             (!('soulMission' in data) || (data.soulMission is string && data.soulMission.size() < 1000)) &&
+             (!('energyBlueprint' in data) || (data.energyBlueprint is map && data.energyBlueprint.keys().hasOnly(['intuition', 'grounding', 'empathy', 'manifestation', 'cosmicConnection']))) &&
+             (!('updatedAt' in data) || (data.updatedAt is string));
+    }
+
+    function isValidJournal(data) {
+      return true;
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['uid', 'content', 'createdAt']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 5000 &&
+             (!('authorName' in data) || (data.authorName is string && data.authorName.size() < 100)) &&
+             (!('authorPhoto' in data) || (data.authorPhoto is string && data.authorPhoto.size() < 1000)) &&
+             (!('authorStarseed' in data) || (data.authorStarseed is string && data.authorStarseed.size() < 50)) &&
+             (!('authorMantra' in data) || (data.authorMantra is string && data.authorMantra.size() < 500)) &&
+             (!('isAnonymous' in data) || (data.isAnonymous is bool)) &&
+             (!('likes' in data) || (data.likes is number));
+    }
+
+    function isValidComment(data) {
+      return data.keys().hasAll(['uid', 'content', 'createdAt']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 1000 &&
+             (!('authorName' in data) || (data.authorName is string && data.authorName.size() < 100)) &&
+             (!('authorPhoto' in data) || (data.authorPhoto is string && data.authorPhoto.size() < 1000)) &&
+             (!('authorStarseed' in data) || (data.authorStarseed is string && data.authorStarseed.size() < 50));
+    }
+
+    function isValidLikeUpdate(docId) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) &&
+             math.abs(request.resource.data.likes - resource.data.likes) == 1;
+    }
+
+    function isValidQuizResult(data) {
+      return data.keys().hasAll(['uid', 'quizId', 'result', 'createdAt']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.quizId is string &&
+             data.result is string;
+    }
+
+    function isValidReading(data) {
+      return data.keys().hasAll(['userId', 'interpretation', 'cards', 'createdAt']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.interpretation is string && data.interpretation.size() > 0 && data.interpretation.size() < 10000 &&
+             data.cards is list && data.cards.size() <= 5 &&
+             data.createdAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated(); // Allow reading profiles for community display
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      request.resource.data.uid == resource.data.uid;
+      allow delete: if false;
+    }
+
+    match /journals/{journalId} {
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      allow create: if isAuthenticated() && isValidJournal(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.uid == request.auth.uid && isValidJournal(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+    }
+
+    match /readings/{readingId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidReading(request.resource.data);
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidPost(request.resource.data);
+      allow update: if isAuthenticated() && (
+                      (resource.data.uid == request.auth.uid && isValidPost(request.resource.data)) ||
+                      isValidLikeUpdate(postId)
+                    );
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && isValidComment(request.resource.data);
+        allow update: if isAuthenticated() && resource.data.uid == request.auth.uid && isValidComment(request.resource.data);
+        allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      }
+    }
+
+    match /quizzes/{quizId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /quizResults/{resultId} {
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      allow create: if isAuthenticated() && isValidQuizResult(request.resource.data);
+      allow update, delete: if false;
+    }
+  }
+}

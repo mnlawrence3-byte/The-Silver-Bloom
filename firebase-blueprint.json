@@ -1,0 +1,144 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user customization data including signs and starseed origin.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier for the user." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "photoURL": { "type": "string", "description": "The user's avatar URL." },
+        "avatarIcon": { "type": "string", "description": "The user's selected cosmic avatar icon name." },
+        "sunSign": { "type": "string", "description": "The user's sun sign." },
+        "moonSign": { "type": "string", "description": "The user's moon sign." },
+        "risingSign": { "type": "string", "description": "The user's rising sign." },
+        "soulUrge": { "type": "integer", "description": "The user's soul urge number." },
+        "lifePath": { "type": "integer", "description": "The user's life path number." },
+        "starseed": { "type": "string", "description": "The user's starseed origin." },
+        "cosmicMantra": { "type": "string", "description": "The user's cosmic mantra." },
+        "soulMission": { "type": "string", "description": "The user's soul mission." },
+        "energyBlueprint": {
+          "type": "object",
+          "properties": {
+            "intuition": { "type": "integer" },
+            "grounding": { "type": "integer" },
+            "empathy": { "type": "integer" },
+            "manifestation": { "type": "integer" },
+            "cosmicConnection": { "type": "integer" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "The last time the profile was updated." }
+      },
+      "required": ["uid", "displayName"]
+    },
+    "JournalEntry": {
+      "title": "Journal Entry",
+      "description": "A private reflection by a user.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "content", "createdAt"]
+    },
+    "Post": {
+      "title": "Community Post",
+      "description": "A public thought shared with the community.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "authorStarseed": { "type": "string" },
+        "authorMantra": { "type": "string" },
+        "isAnonymous": { "type": "boolean" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "likes": { "type": "integer" }
+      },
+      "required": ["uid", "content", "createdAt"]
+    },
+    "Comment": {
+      "title": "Post Comment",
+      "description": "A reflection or response to a community post.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "authorStarseed": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "content", "createdAt"]
+    },
+    "Quiz": {
+      "title": "Quiz",
+      "description": "A cosmic quiz definition.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": { "type": "string" },
+                    "value": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "QuizResult": {
+      "title": "Quiz Result",
+      "description": "A user's result from taking a quiz.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "quizId": { "type": "string" },
+        "result": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile documents."
+    },
+    "/journals/{journalId}": {
+      "schema": "JournalEntry",
+      "description": "Private journal entries."
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Public community posts."
+    },
+    "/quizzes/{quizId}": {
+      "schema": "Quiz",
+      "description": "Quiz definitions."
+    },
+    "/quizResults/{resultId}": {
+      "schema": "QuizResult",
+      "description": "User quiz results."
+    }
+  }
+}
